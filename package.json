@@ -2,14 +2,17 @@
   "name": "frigid",
   "version": "1.0.0",
   "main": "out/index.js",
+  "types": "out/index.d.ts",
   "license": "MIT",
   "type": "module",
-  "repository": "",
+  "repository": "https://github.com/marcus13345/frigid.git",
   "devDependencies": {
+    "@types/node": "^15.12.2",
     "typescript": "^4.3.2",
-    "@types/node": "^15.12.2"
+    "yarn": "^1.22.10"
   },
   "scripts": {
+    "prepublish": "yarn build",
     "build": "tsc"
   }
 }

@@ -7,22 +7,15 @@ export default class Serializable {
 
 	// things that need to be stored only in cold
 	// storage are keyed with a special prefix
+	// its namesapce pollution, eventually the
+	// format should be a bit more complex, to
+	// avoid this but... simplicity for now...
 	static CLASS_REFERENCE = '$$CLASS_NAME';
 
 	// things that need to be stored only at runtime
 	// are keyed with symbols to not interfere with
 	// user code.
 	static PERSIST_LOCATION = Symbol('PERSIST_LOCATION');
-
-	start() {}
-
-	// toUbj() {
-	// 	return Ubjson.encode(this.toSerializableObject());
-	// }
-
-	// static fromUbj(buffer) {
-	// 	return this.fromSerializableObject(Ubjson.decode(buffer));
-	// }
 
 	toJson() {
 		return JSON.stringify(this.toSerializableObject(), null, 2);
