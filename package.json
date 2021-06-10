@@ -1,0 +1,15 @@
+{
+  "name": "frigid",
+  "version": "1.0.0",
+  "main": "out/index.js",
+  "license": "MIT",
+  "type": "module",
+  "repository": "",
+  "devDependencies": {
+    "typescript": "^4.3.2",
+    "@types/node": "^15.12.2"
+  },
+  "scripts": {
+    "build": "tsc"
+  }
+}
