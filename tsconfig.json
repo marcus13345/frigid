@@ -4,7 +4,8 @@
 		"module": "ES2020",
 		"moduleResolution": "Node",
 		"outDir": "out",
-		"declaration": true
+		"declaration": true,
+		"allowSyntheticDefaultImports": true
 	},
 	"include": [
 		"src/**/*.ts"

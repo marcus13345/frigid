@@ -152,18 +152,19 @@ export default class Serializable {
 	async restore() {}
 
 	static createFromDisk(filename: string, ...args: any[]) {
-		if(existsSync(filename)) {
-			const instance = this.deserialize(readFileSync(createFilepath(filename)));
+		const filepath = createFilepath(filename);
+		if(existsSync(filepath)) {
+			const instance = this.deserialize(readFileSync(filepath));
 			// TS is plain and simply wrong... symbols can be used to index object...
 			// @ts-ignore
-			instance[Serializable.PERSIST_LOCATION] = createFilepath(filename);
+			instance[Serializable.PERSIST_LOCATION] = filepath;
 			instance?.restore();
 			return instance;
 		} else {
 			const instance = new this(...args);
 			// again... TS is wrong...
 			// @ts-ignore
-			instance[Serializable.PERSIST_LOCATION] = createFilepath(filename);
+			instance[Serializable.PERSIST_LOCATION] = filepath;
 			instance?.updateDisk();
 			return instance;
 		}
