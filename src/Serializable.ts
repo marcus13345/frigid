@@ -1,5 +1,6 @@
 // import { Ubjson } from '@shelacek/ubjson';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { reverseLookup } from './reverseLookup.js';
 
 export default class Serializable {
 
@@ -14,26 +15,21 @@ export default class Serializable {
 	static INSTANCE_DECLARATION = '$$INSTANCE_ID';
 	static INSTANCE_REFERENCE = '$$INSTANCE_REF';
 
-	// things that need to be stored only at runtime
-	// are keyed with symbols to not interfere with
-	// user code.
-	static PERSIST_LOCATION = Symbol('PERSIST_LOCATION');
+	static serializationDependencies(): any[] {
+		return [];
+	}
 
 	toJson() {
 		return JSON.stringify(this.toSerializableObject(), null, 2);
-	}
-
-	static serializationDependencies(): any[] {
-		return [];
 	}
 
 	static fromJson(str: string) {
 		return this.fromSerializableObject(JSON.parse(str));
 	}
 
-	// thisdoesnt operate recursively, it doesnt need to, because dependency
-	// resoltion isnt required. we simply declare the dependencies.
-	// so we never touch static serializationDependencies!
+	// this doesnt operate recursively, it doesnt need to, because
+	// dependency resoltion isnt required. we simply declare the
+	// dependencies. so we never touch serializationDependencies!
 	toSerializableObject() {
 		const instances: Map<number, object> = new Map();
 
@@ -197,57 +193,4 @@ export default class Serializable {
 			}
 		}
 	}
-
-	async restore() {}
-
-	static createFromDisk(filename: string, ...args: any[]) {
-		const filepath = createFilepath(filename);
-		if(existsSync(filepath)) {
-			const instance = this.deserialize(readFileSync(filepath));
-			// TS is plain and simply wrong... symbols can be used to index object...
-			// @ts-ignore
-			instance[Serializable.PERSIST_LOCATION] = filepath;
-			instance?.restore();
-			return instance;
-		} else {
-			const instance = new this(...args);
-			// again... TS is wrong...
-			// @ts-ignore
-			instance[Serializable.PERSIST_LOCATION] = filepath;
-			instance?.updateDisk();
-			return instance;
-		}
-	}
-
-	updateDisk(filepath?: string) {
-		// if it hasnt yet been written to disk...
-		// this can happen if the contrustor 
-		// was called outside of createFromDisk
-		if(filepath) {
-			// see above... TS7053 is just _wrong_. incorrect. thats not how JS works.
-			// @ts-ignore
-			this[Serializable.PERSIST_LOCATION] = createFilepath(filepath);
-		}
-		const data = this.serialize();
-		// this is getting annoying...
-		// @ts-ignore
-		writeFileSync(this[Serializable.PERSIST_LOCATION], data);
-	}
-}
-
-function createFilepath(path: string) {
-	return `data/${path}`;
-}
-
-
-function reverseLookup<K, V>(map: Map<K, V>, value: V): K {
-	// console.log('searching for', value, 'in', map);
-	for(const [k, v] of map) {
-		if(v === value) {
-			// console.log('found in key', k);
-			return k;
-		}
-	}
-	// console.log(value, 'not found')
-	return null;
 }
