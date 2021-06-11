@@ -11,6 +11,8 @@ export default class Serializable {
 	// format should be a bit more complex, to
 	// avoid this but... simplicity for now...
 	static CLASS_REFERENCE = '$$CLASS_NAME';
+	static INSTANCE_DECLARATION = '$$INSTANCE_ID';
+	static INSTANCE_REFERENCE = '$$INSTANCE_REF';
 
 	// things that need to be stored only at runtime
 	// are keyed with symbols to not interfere with
@@ -29,7 +31,11 @@ export default class Serializable {
 		return this.fromSerializableObject(JSON.parse(str));
 	}
 
+	// thisdoesnt operate recursively, it doesnt need to, because dependency
+	// resoltion isnt required. we simply declare the dependencies.
+	// so we never touch static serializationDependencies!
 	toSerializableObject() {
+		const instances: Map<number, object> = new Map();
 
 		const transformValue = (val: any): any => {
 			if(Array.isArray(val)) {
@@ -44,15 +50,26 @@ export default class Serializable {
 		}
 
 		const transformObject = (obj: any): any => {
+
+			// is this a circular reference, or reference to a previously
+			// known object...
+			const duplicateObjectLink = reverseLookup(instances, obj);
+			if(duplicateObjectLink !== null) return { [Serializable.INSTANCE_REFERENCE]: duplicateObjectLink };
+			
 			const clone: any = {};
+			const newId = instances.size;
+			clone[Serializable.INSTANCE_DECLARATION] = newId;
+			instances.set(newId, obj);
+
 			for(const prop of Object.keys(obj)) {
 				if(prop.startsWith('_')) continue;
+				else clone[prop] = transformValue(obj[prop]);
+			}
 
-				clone[prop] = transformValue(obj[prop]);
-			}
-			if(obj instanceof Serializable) {
-				clone[Serializable.CLASS_REFERENCE] = obj.constructor.name;
-			}
+			if(obj instanceof Serializable) clone[Serializable.CLASS_REFERENCE] = obj.constructor.name;
+			
+			// console.log('recorded instance', newId, obj, instances);
+
 			return clone;
 		}
 
@@ -67,7 +84,8 @@ export default class Serializable {
 		return transformObject(this);
 	}
 
-	static fromSerializableObject(obj: any) {
+	static fromSerializableObject(obj: any, instances: Map<number, object> = new Map()) {
+		// console.log('deserializing', obj);
 		if(obj[Serializable.CLASS_REFERENCE] !== this.name) return null;
 
 		const transformValue = (val: any): any => {
@@ -79,12 +97,13 @@ export default class Serializable {
 				if(Serializable.CLASS_REFERENCE in val) {
 					const classes = this.serializationDependencies();
 					const matchingClasses = classes.filter((classObject) => {
-						classObject.name === val[Serializable.CLASS_REFERENCE]
+						return classObject.name === val[Serializable.CLASS_REFERENCE]
 					});
 					if(matchingClasses.length === 1) {
-						return matchingClasses[0].fromSerializableObject(val);
+						return matchingClasses[0].fromSerializableObject(val, instances);
 					} else {
-						return transformObject(val);
+						throw new Error('Unknown class ' + val[Serializable.CLASS_REFERENCE] + '!\n' + 
+							'Did you forget to add ' + val[Serializable.CLASS_REFERENCE] + ' to static serializationDependencies?');
 					}
 				}
 				return transformObject(val);
@@ -94,13 +113,23 @@ export default class Serializable {
 		}
 
 		const transformObject = (obj: any): any => {
+			let constructedObject = null;
+
 			const clone: any = {};
 			for(const prop of Object.keys(obj)) {
 				if(prop.startsWith('_')) continue;
+				// if(prop.startsWith('$$')) continue;
 
 				clone[prop] = transformValue(obj[prop]);
 			}
-			return clone;
+			constructedObject = clone;
+
+			if(Serializable.INSTANCE_DECLARATION in obj) {
+				// console.log('recording instance', obj[Serializable.INSTANCE_DECLARATION], constructedObject);
+				instances.set(obj[Serializable.INSTANCE_DECLARATION], constructedObject);
+			}
+
+			return constructedObject;
 		}
 
 		const transformArray = (arr: any[]): any[] => {
@@ -115,9 +144,29 @@ export default class Serializable {
 		if(Serializable.CLASS_REFERENCE in obj)
 			clone.__proto__ = this.prototype;
 
-		clone.restore();
+		const secondPass = (obj) => {
+			for(const key of Object.keys(obj)) {
+				if(key === Serializable.INSTANCE_DECLARATION) delete obj[key];
+				if(key === Serializable.CLASS_REFERENCE) delete obj[key];
+				const val = obj[key];
+				if(typeof val === 'object') {
+					if(Serializable.INSTANCE_REFERENCE in val) {
+						const refId = val[Serializable.INSTANCE_REFERENCE];
+						if(instances.has(refId)) {
+							obj[key] = instances.get(refId);
+						}
+					}
+					else obj[key] = secondPass(val);
+				}
+			}
+			return obj;
+		}
 
-		return clone;
+		const parse = secondPass(clone);
+
+		// clone.restore?.();
+
+		return parse;
 	}
 
 	serialize({
@@ -188,4 +237,17 @@ export default class Serializable {
 
 function createFilepath(path: string) {
 	return `data/${path}`;
+}
+
+
+function reverseLookup<K, V>(map: Map<K, V>, value: V): K {
+	// console.log('searching for', value, 'in', map);
+	for(const [k, v] of map) {
+		if(v === value) {
+			// console.log('found in key', k);
+			return k;
+		}
+	}
+	// console.log(value, 'not found')
+	return null;
 }

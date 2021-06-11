@@ -5,7 +5,8 @@
 		"moduleResolution": "Node",
 		"outDir": "out",
 		"declaration": true,
-		"allowSyntheticDefaultImports": true
+		"allowSyntheticDefaultImports": true,
+		"sourceMap": true
 	},
 	"include": [
 		"src/**/*.ts"
