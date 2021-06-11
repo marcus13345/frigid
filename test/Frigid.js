@@ -13,10 +13,12 @@ class Test extends Frigid {
 	constructor() {
 		super();
 		trackingData.constructorCalls ++;
+		console.log('construct')
 	}
 
 	[RESTORE]() {
 		trackingData.restoreCalls ++;
+		console.log('restore')
 	}
 }
 
@@ -40,3 +42,5 @@ const retest = Test.create(filepath);
 
 expect(trackingData.constructorCalls).to.equal(1);
 expect(trackingData.restoreCalls).to.equal(2);
+
+unlinkSync(filepath)
