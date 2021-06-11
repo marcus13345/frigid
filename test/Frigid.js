@@ -40,7 +40,7 @@ expect(trackingData.restoreCalls).to.equal(1);
 
 const retest = Test.create(filepath);
 
-expect(trackingData.constructorCalls).to.equal(1);
+expect(trackingData.constructorCalls).to.equal(2);
 expect(trackingData.restoreCalls).to.equal(2);
 
 unlinkSync(filepath)

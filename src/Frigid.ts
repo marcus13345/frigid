@@ -7,18 +7,22 @@ export const RESTORE = Symbol('RESTORE');
 export default class Frigid extends Serializable {
 	static create(filename: string, ...args: any[]) {
 		if(existsSync(filename)) {
-			const instance = this.deserialize(readFileSync(filename));
+			const instance = new this(...args);
+			const instanceStuff = this.deserialize(readFileSync(filename));
+			for(const key of Object.keys(instanceStuff)) {
+				instance[key] = instanceStuff[key]
+			}
 			// TS is plain and simply wrong... symbols can be used to index object...
 			// @ts-ignore
 			instance[PERSIST_LOCATION] = filename;
-			instance[RESTORE]();
+			instance[RESTORE]?.();
 			return instance;
 		} else {
 			const instance = new this(...args);
 			// again... TS is wrong...
 			// @ts-ignore
 			instance[PERSIST_LOCATION] = filename;
-			instance[RESTORE]();
+			instance[RESTORE]?.();
 			instance.sync();
 			return instance;
 		}
