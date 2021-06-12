@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { reverseLookup } from "./reverseLookup.js";
-import Serializable from "./Serializable.js";
+import Serializable, { INVOKE_CTOR } from "./Serializable.js";
 
 const PERSIST_LOCATION = Symbol('PERSIST_LOCATION');
 
@@ -36,6 +36,7 @@ export default class Frigid extends Serializable {
 }
 
 function walk(obj, transform, done = new Map()) {
+	if(obj === null || obj === undefined) return;
 	if(obj instanceof Serializable) {
 		transform(obj);
 	}
@@ -57,7 +58,7 @@ function finalze(instance, filename) {
 
 	walk(instance, (obj) => {
 		// console.log(obj instanceof Serializable)
-		(obj as any).ctor?.();
+		obj[INVOKE_CTOR]();
 	});
 
 	instance.sync();

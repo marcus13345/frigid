@@ -16,8 +16,7 @@ class Sub extends Serializable {
 
 class Test extends Frigid {
 	foo = 'bar';
-
-	test = new Sub();
+	test = null;
 
 	static serializationDependencies() {
 		return [ Sub ];
@@ -30,6 +29,7 @@ class Test extends Frigid {
 
 	ctor() {
 		trackingData.ctor ++;
+		this.test ??= new Sub();
 	}
 }
 
@@ -46,9 +46,9 @@ expect(test.sync.bind(test)).to.not.throw();
 expect(existsSync(filepath)).to.be.true;
 expect(readFileSync(filepath).toString()).to.not.be.empty;
 
+expect(trackingData.ctor).to.equal(1);
 expect(trackingData.constructorCalls).to.equal(1);
 expect(trackingData.subCtor).to.equal(1);
-expect(trackingData.ctor).to.equal(1);
 
 const retest = Test.create(filepath);
 

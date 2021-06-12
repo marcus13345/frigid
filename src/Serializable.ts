@@ -2,11 +2,26 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { reverseLookup } from './reverseLookup.js';
 
+export const CTOR_CALLED = Symbol('CTOR_CALLED');
+export const INVOKE_CTOR = Symbol('INVOKE_CTOR');
+
 export default class Serializable {
+
+	[CTOR_CALLED] = false;
 
 	// takes as many args as it needs to (so subclasses can
 	// define their own constructor, with any number of args)
-	constructor(...args) {}
+	constructor(...args) {
+		this[INVOKE_CTOR]();
+	}
+
+	[INVOKE_CTOR] () {
+		const call = !this[CTOR_CALLED];
+		this[CTOR_CALLED] = true;
+		if(call) {
+			(this as any).ctor?.();
+		}
+	}
 
 	// things that need to be stored only in cold
 	// storage are keyed with a special prefix
@@ -148,6 +163,7 @@ export default class Serializable {
 				if(key === Serializable.CLASS_REFERENCE) delete obj[key];
 				const val = obj[key];
 				if(typeof val === 'object') {
+					if(val === null || val === undefined) return obj;
 					if(Serializable.INSTANCE_REFERENCE in val) {
 						const refId = val[Serializable.INSTANCE_REFERENCE];
 						if(instances.has(refId)) {
