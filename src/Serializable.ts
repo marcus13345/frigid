@@ -4,7 +4,9 @@ import { reverseLookup } from './reverseLookup.js';
 
 export default class Serializable {
 
-	constructor(...args: any[]) {}
+	// takes as many args as it needs to (so subclasses can
+	// define their own constructor, with any number of args)
+	constructor(...args) {}
 
 	// things that need to be stored only in cold
 	// storage are keyed with a special prefix
@@ -23,8 +25,8 @@ export default class Serializable {
 		return JSON.stringify(this.toSerializableObject(), null, 2);
 	}
 
-	static fromJson(str: string) {
-		return this.fromSerializableObject(JSON.parse(str));
+	static fromJson(str: string, instances: Map<number, object> = new Map()) {
+		return this.fromSerializableObject(JSON.parse(str), instances);
 	}
 
 	// this doesnt operate recursively, it doesnt need to, because
@@ -180,17 +182,7 @@ export default class Serializable {
 
 	}
 	
-	static deserialize(obj: any, {
-		encoding = 'json'
-	} = {}) {
-
-		switch(encoding) {
-			case 'json': return this.fromJson(obj);
-			case 'ubjson':
-			// case 'ubj': return this.fromUbj(obj);
-			default: {
-				throw new TypeError('Unknown encoding: ' + encoding);
-			}
-		}
+	static deserialize(obj: any, instances: Map<number, object> = new Map()) {
+		return this.fromJson(obj, instances);
 	}
 }

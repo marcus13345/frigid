@@ -2,30 +2,28 @@ import { existsSync, readFileSync, writeFileSync } from "fs";
 import Serializable from "./Serializable.js";
 
 const PERSIST_LOCATION = Symbol('PERSIST_LOCATION');
-export const RESTORE = Symbol('RESTORE');
 
 export default class Frigid extends Serializable {
+
+	ctor() {}
+
+	constructor(...args) {
+		super(...args);
+	}
+
 	static create(filename: string, ...args: any[]) {
-		if(existsSync(filename)) {
-			const instance = new this(...args);
-			const instanceStuff = this.deserialize(readFileSync(filename));
-			for(const key of Object.keys(instanceStuff)) {
-				instance[key] = instanceStuff[key]
+
+		const instance = (() => {
+			if(existsSync(filename)) {
+				return this.deserialize(readFileSync(filename));
+			} else {
+				return new this(...args);
 			}
-			// TS is plain and simply wrong... symbols can be used to index object...
-			// @ts-ignore
-			instance[PERSIST_LOCATION] = filename;
-			instance[RESTORE]?.();
-			return instance;
-		} else {
-			const instance = new this(...args);
-			// again... TS is wrong...
-			// @ts-ignore
-			instance[PERSIST_LOCATION] = filename;
-			instance[RESTORE]?.();
-			instance.sync();
-			return instance;
-		}
+		})();
+
+		finalze(instance, filename);
+
+		return instance;
 	}
 
 	sync() {
@@ -34,4 +32,29 @@ export default class Frigid extends Serializable {
 		// @ts-ignore
 		writeFileSync(this[PERSIST_LOCATION], data);
 	}
+}
+
+function walk(obj, transform) {
+	if(obj instanceof Serializable) {
+		transform(obj);
+	}
+	for(const key of Object.keys(obj)) {
+		const val = obj[key];
+		if(typeof obj === 'object') {
+			walk(val, transform);
+		}
+	}
+}
+
+function finalze(instance, filename) {
+	// TS is plain and simply wrong... symbols can be used to index object...
+	// @ts-ignore
+	instance[PERSIST_LOCATION] = filename;
+
+	walk(instance, (obj) => {
+		// console.log(obj instanceof Serializable)
+		(obj as any).ctor?.();
+	});
+
+	instance.sync();
 }
