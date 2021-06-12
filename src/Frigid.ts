@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
+import { reverseLookup } from "./reverseLookup.js";
 import Serializable from "./Serializable.js";
 
 const PERSIST_LOCATION = Symbol('PERSIST_LOCATION');
@@ -34,14 +35,17 @@ export default class Frigid extends Serializable {
 	}
 }
 
-function walk(obj, transform) {
+function walk(obj, transform, done = new Map()) {
 	if(obj instanceof Serializable) {
 		transform(obj);
+		if(reverseLookup(done, obj) === null) {
+			done.set(done.size, obj);
+		}
 	}
 	for(const key of Object.keys(obj)) {
 		const val = obj[key];
 		if(typeof obj === 'object') {
-			walk(val, transform);
+			walk(val, transform, done);
 		}
 	}
 }
