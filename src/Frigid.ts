@@ -38,14 +38,14 @@ export default class Frigid extends Serializable {
 function walk(obj, transform, done = new Map()) {
 	if(obj instanceof Serializable) {
 		transform(obj);
-		if(reverseLookup(done, obj) === null) {
-			done.set(done.size, obj);
-		}
 	}
-	for(const key of Object.keys(obj)) {
-		const val = obj[key];
-		if(typeof obj === 'object') {
-			walk(val, transform, done);
+	if(reverseLookup(done, obj) === null) {
+		done.set(done.size, obj);
+		for(const key of Object.keys(obj)) {
+			const val = obj[key];
+			if(typeof obj === 'object') {
+				walk(val, transform, done);
+			}
 		}
 	}
 }
