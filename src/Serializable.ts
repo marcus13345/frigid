@@ -4,9 +4,11 @@ import { reverseLookup } from './reverseLookup.js';
 
 export const CTOR_CALLED = Symbol('CTOR_CALLED');
 export const INVOKE_CTOR = Symbol('INVOKE_CTOR');
+export const DEBUG = Symbol('DEBUG');
 
 export default class Serializable {
 
+	[DEBUG] = false;
 	[CTOR_CALLED] = false;
 
 	// takes as many args as it needs to (so subclasses can
@@ -37,7 +39,11 @@ export default class Serializable {
 	}
 
 	toJson() {
-		return JSON.stringify(this.toSerializableObject(), null, 2);
+		if(this[DEBUG]) {
+			return JSON.stringify(this.toSerializableObject(), null, 2);
+		} else {
+			return JSON.stringify(this.toSerializableObject());
+		}
 	}
 
 	static fromJson(str: string, instances: Map<number, object> = new Map()) {
@@ -157,7 +163,9 @@ export default class Serializable {
 		if(Serializable.CLASS_REFERENCE in obj)
 			clone.__proto__ = this.prototype;
 
+		const secondPassObjectsCompleted = new Map();
 		const secondPass = (obj) => {
+			console.log('second passing', obj);
 			for(const key of Object.keys(obj)) {
 				if(key === Serializable.INSTANCE_DECLARATION) delete obj[key];
 				if(key === Serializable.CLASS_REFERENCE) delete obj[key];
@@ -169,8 +177,14 @@ export default class Serializable {
 						if(instances.has(refId)) {
 							obj[key] = instances.get(refId);
 						}
+					} else {
+						if(!secondPassObjectsCompleted.has(val)) {
+							secondPassObjectsCompleted.set(val, true);
+							obj[key] = secondPass(val);
+						} else {
+							obj[key] = val;
+						}
 					}
-					else obj[key] = secondPass(val);
 				}
 			}
 			return obj;
