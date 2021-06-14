@@ -122,7 +122,7 @@ export default class Serializable {
 						return matchingClasses[0].fromSerializableObject(val, instances);
 					} else {
 						throw new Error('Unknown class ' + val[Serializable.CLASS_REFERENCE] + '!\n' + 
-							'Did you forget to add ' + val[Serializable.CLASS_REFERENCE] + ' to static serializationDependencies?');
+							'Did you forget to add ' + val[Serializable.CLASS_REFERENCE] + ` to ${this.name}.serializationDependencies?`);
 					}
 				}
 				return transformObject(val);
