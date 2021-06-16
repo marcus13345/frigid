@@ -57,7 +57,6 @@ function finalze(instance, filename) {
 	instance[PERSIST_LOCATION] = filename;
 
 	walk(instance, (obj) => {
-		// console.log(obj instanceof Serializable)
 		obj[INVOKE_CTOR]();
 	});
 

@@ -39,11 +39,11 @@ export default class Serializable {
 	}
 
 	toJson() {
-		if(this[DEBUG]) {
+		// if(this[DEBUG]) {
 			return JSON.stringify(this.toSerializableObject(), null, 2);
-		} else {
-			return JSON.stringify(this.toSerializableObject());
-		}
+		// } else {
+		// 	return JSON.stringify(this.toSerializableObject());
+		// }
 	}
 
 	static fromJson(str: string, instances: Map<number, object> = new Map()) {
@@ -86,8 +86,6 @@ export default class Serializable {
 			}
 
 			if(obj instanceof Serializable) clone[Serializable.CLASS_REFERENCE] = obj.constructor.name;
-			
-			// console.log('recorded instance', newId, obj, instances);
 
 			return clone;
 		}
@@ -104,7 +102,6 @@ export default class Serializable {
 	}
 
 	static fromSerializableObject(obj: any, instances: Map<number, object> = new Map()) {
-		// console.log('deserializing', obj);
 		if(obj[Serializable.CLASS_REFERENCE] !== this.name) return null;
 
 		const transformValue = (val: any): any => {
@@ -144,7 +141,6 @@ export default class Serializable {
 			constructedObject = clone;
 
 			if(Serializable.INSTANCE_DECLARATION in obj) {
-				// console.log('recording instance', obj[Serializable.INSTANCE_DECLARATION], constructedObject);
 				instances.set(obj[Serializable.INSTANCE_DECLARATION], constructedObject);
 			}
 
@@ -165,7 +161,6 @@ export default class Serializable {
 
 		const secondPassObjectsCompleted = new Map();
 		const secondPass = (obj) => {
-			console.log('second passing', obj);
 			for(const key of Object.keys(obj)) {
 				if(key === Serializable.INSTANCE_DECLARATION) delete obj[key];
 				if(key === Serializable.CLASS_REFERENCE) delete obj[key];
