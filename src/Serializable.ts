@@ -1,10 +1,11 @@
 // import { Ubjson } from '@shelacek/ubjson';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { reverseLookup } from './reverseLookup.js';
 
 export const CTOR_CALLED = Symbol('CTOR_CALLED');
 export const INVOKE_CTOR = Symbol('INVOKE_CTOR');
 export const DEBUG = Symbol('DEBUG');
+
+type SerializableClass = typeof Serializable;
 
 export default class Serializable {
 
@@ -34,7 +35,7 @@ export default class Serializable {
 	static INSTANCE_DECLARATION = '$$INSTANCE_ID';
 	static INSTANCE_REFERENCE = '$$INSTANCE_REF';
 
-	static serializationDependencies(): any[] {
+	static serializationDependencies(): SerializableClass[] {
 		return [];
 	}
 
@@ -101,8 +102,21 @@ export default class Serializable {
 		return transformObject(this);
 	}
 
-	static fromSerializableObject(obj: any, instances: Map<number, object> = new Map()) {
+	static fromSerializableObject(obj: any, instances: Map<number, object> = new Map(), classes: Set<SerializableClass> = new Set()) {
 		if(obj[Serializable.CLASS_REFERENCE] !== this.name) return null;
+    
+
+    if(classes.size === 0) {
+      function descendDeps(ctx: SerializableClass) {
+        for(const child of ctx.serializationDependencies?.() ?? []) {
+          if(!classes.has(child)) {
+            classes.add(child)
+            descendDeps(child);
+          }
+        }
+      }
+      descendDeps(this);
+    }
 
 		const transformValue = (val: any): any => {
 			if(Array.isArray(val)) {
@@ -111,12 +125,11 @@ export default class Serializable {
 				return val;
 			} else if(typeof val === 'object') {
 				if(Serializable.CLASS_REFERENCE in val) {
-					const classes = this.serializationDependencies();
-					const matchingClasses = classes.filter((classObject) => {
+					const matchingClasses = [...classes].filter((classObject) => {
 						return classObject.name === val[Serializable.CLASS_REFERENCE]
 					});
 					if(matchingClasses.length === 1) {
-						return matchingClasses[0].fromSerializableObject(val, instances);
+						return matchingClasses[0].fromSerializableObject(val, instances, classes);
 					} else {
 						throw new Error('Unknown class ' + val[Serializable.CLASS_REFERENCE] + '!\n' + 
 							'Did you forget to add ' + val[Serializable.CLASS_REFERENCE] + ` to ${this.name}.serializationDependencies?`);
@@ -186,8 +199,6 @@ export default class Serializable {
 		}
 
 		const parse = secondPass(clone);
-
-		// clone.restore?.();
 
 		return parse;
 	}
