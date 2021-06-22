@@ -5,7 +5,9 @@ export const CTOR_CALLED = Symbol('CTOR_CALLED');
 export const INVOKE_CTOR = Symbol('INVOKE_CTOR');
 export const DEBUG = Symbol('DEBUG');
 
-type SerializableClass = typeof Serializable;
+type SerializableClass = {
+  new(): Serializable;
+} & typeof Serializable;
 
 export default class Serializable {
 
